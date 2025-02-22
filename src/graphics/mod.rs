@@ -1,4 +1,7 @@
 mod animations;
-mod character;
+mod character_mesh;
 
-pub struct MeshId(i32);
+pub use animations::*;
+pub use character_mesh::*;
+
+pub struct MeshId(pub usize);

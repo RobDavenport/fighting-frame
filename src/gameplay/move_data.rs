@@ -7,7 +7,7 @@ pub struct MoveData {
 
 impl MoveData {
     pub fn get_total_frames(&self) -> usize {
-        self.frame_data.iter().map(|f| f.frame_duration).sum()
+        self.frame_data.iter().map(|f| f.duration).sum()
     }
 }
 
@@ -51,7 +51,7 @@ pub struct Hurtboxes {
 }
 
 pub struct FrameData {
-    frame_duration: usize,
+    duration: usize,
     hitboxes: Option<Hitboxes>,
     hurtboxes: Option<Hurtboxes>,
     blocking_volume: &'static [CollisionBoxes],
