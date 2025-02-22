@@ -1,10 +1,15 @@
-[package]
-name = "fighting-frame"
-version = "0.1.0"
-edition = "2024"
+[workspace]
+resolver = "3"
 
-[lib]
-crate-type = ['cdylib']
+members = [
+    "exporter",
+    "game",
+]
 
-[dependencies]
-glam = "0.30.0"
+[profile.release]
+lto = "fat"
+
+
+[workspace.dependencies]
+glam = "0.30"
+gltf = "1.4.1"
