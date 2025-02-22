@@ -1,0 +1,10 @@
+[package]
+name = "fighting-frame"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+crate-type = ['cdylib']
+
+[dependencies]
+glam = "0.30.0"
