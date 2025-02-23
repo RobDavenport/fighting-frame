@@ -1,7 +1,7 @@
 mod animation;
 
 use glam::{Mat4, Quat, Vec3};
-use gltf::{Primitive, animation::util::ReadOutputs, buffer::Data};
+use gltf::{Primitive, buffer::Data};
 use std::collections::HashMap;
 use std::fs;
 
@@ -35,17 +35,6 @@ impl MeshData {
         }
     }
 }
-
-/// Intermediate structure to store optional transform components for each bone.
-#[derive(Clone, Default)]
-struct BoneChannelData {
-    translation: Option<[f32; 3]>,
-    rotation: Option<[f32; 4]>,
-    scale: Option<[f32; 3]>,
-}
-
-/// A keyframe is a vector of final transformation matrices (one per bone).
-type Keyframe = Vec<Mat4>;
 
 fn main() {
     // Import the glTF file.
@@ -95,141 +84,7 @@ fn main() {
     }
 
     // --- Process Animations ---
-    let mut animations: HashMap<String, Vec<Keyframe>> = HashMap::new();
-    for animation in document.animations() {
-        let anim_name = animation.name().unwrap().to_string();
-        println!("importing animation: {:?}", anim_name);
-
-        let channels: Vec<_> = animation.channels().collect();
-
-        // Determine the maximum keyframe index.
-        let mut max_frame = 0;
-        for channel in &channels {
-            let reader = channel.reader(|b| Some(&buffers[b.index()]));
-            if let Some(inputs_iter) = reader.read_inputs() {
-                for time in inputs_iter {
-                    let frame = time.floor() as usize;
-                    if frame > max_frame {
-                        max_frame = frame;
-                    }
-                }
-            }
-        }
-        let num_keyframes = max_frame + 1;
-
-        // Create a 2D vector for keyframe data.
-        let mut keyframe_data: Vec<Vec<BoneChannelData>> =
-            vec![vec![BoneChannelData::default(); mesh_names.len()]; num_keyframes];
-
-        // Process each channel.
-        for channel in channels {
-            let target = channel.target().node();
-
-            // Find the target by checking if one of its children has a mesh with a matching name.
-            let target_name = target.children().find_map(|c| {
-                if let Some(mesh) = c.mesh() {
-                    mesh.name().map(|s| s.to_string())
-                } else {
-                    None
-                }
-            });
-
-            if let Some(bone_name) = target_name {
-                if let Some(&bone_index) = mesh_to_index.get(&bone_name) {
-                    let reader = channel.reader(|b| Some(&buffers[b.index()]));
-                    let inputs = reader.read_inputs().unwrap();
-
-                    match reader.read_outputs().unwrap() {
-                        ReadOutputs::Translations(translations) => {
-                            for (time, translation) in inputs.zip(translations) {
-                                let frame = time.floor() as usize;
-                                keyframe_data[frame][bone_index].translation = Some(translation);
-                            }
-                        }
-                        ReadOutputs::Rotations(rotations) => {
-                            for (time, rotation) in inputs.zip(rotations.into_f32()) {
-                                let frame = time.floor() as usize;
-                                keyframe_data[frame][bone_index].rotation = Some(rotation);
-                            }
-                        }
-                        ReadOutputs::Scales(scales) => {
-                            for (time, scale) in inputs.zip(scales) {
-                                let frame = time.floor() as usize;
-                                keyframe_data[frame][bone_index].scale = Some(scale);
-                            }
-                        }
-                        ReadOutputs::MorphTargetWeights(_weights) => {}
-                    }
-                }
-            }
-        }
-
-        // Propagate missing channel values from previous frames.
-        for bone_index in 0..mesh_names.len() {
-            {
-                let data = &mut keyframe_data[0][bone_index];
-                if data.translation.is_none() {
-                    data.translation = Some([0.0, 0.0, 0.0]);
-                }
-                if data.rotation.is_none() {
-                    data.rotation = Some([0.0, 0.0, 0.0, 1.0]);
-                }
-                if data.scale.is_none() {
-                    data.scale = Some([1.0, 1.0, 1.0]);
-                }
-            }
-            for frame in 1..num_keyframes {
-                let prev = keyframe_data[frame - 1][bone_index].clone();
-                let current = &mut keyframe_data[frame][bone_index];
-                if current.translation.is_none() {
-                    current.translation = Some(prev.translation.unwrap());
-                }
-                if current.rotation.is_none() {
-                    current.rotation = Some(prev.rotation.unwrap());
-                }
-                if current.scale.is_none() {
-                    current.scale = Some(prev.scale.unwrap());
-                }
-            }
-        }
-
-        // Convert channel data into final keyframe matrices.
-        let animation_keyframes: Vec<Keyframe> = keyframe_data
-            .into_iter()
-            .enumerate()
-            .map(|(mesh_index, bone_channels)| {
-                bone_channels
-                    .into_iter()
-                    .map(|channel| {
-                        let translation = Vec3::from(channel.translation.unwrap());
-                        let rotation_arr = channel.rotation.unwrap();
-                        let rotation = Quat::from_xyzw(
-                            rotation_arr[0],
-                            rotation_arr[1],
-                            rotation_arr[2],
-                            rotation_arr[3],
-                        );
-                        let scale = Vec3::from(channel.scale.unwrap());
-                        let local_transform =
-                            Mat4::from_scale_rotation_translation(scale, rotation, translation);
-
-                        let mut mesh_node_index =
-                            *mesh_to_node_index.get(&mesh_names[mesh_index]).unwrap();
-                        let mut global_transform = Mat4::IDENTITY;
-                        while let Some((parent_index, parent_transform)) =
-                            child_to_parent.get(&mesh_node_index)
-                        {
-                            global_transform = global_transform * *parent_transform;
-                            mesh_node_index = *parent_index;
-                        }
-
-                        global_transform * local_transform
-                    })
-                    .collect()
-            })
-            .collect();
-        animations.insert(anim_name, animation_keyframes);
-    }
+    let animations = animation::build_animation_list(&document, &buffers);
 
     // --- Output to a Rust source file ---
     let mut output = String::new();
