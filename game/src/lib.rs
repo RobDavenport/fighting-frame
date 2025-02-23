@@ -81,12 +81,11 @@ pub unsafe extern "C" fn render() {
             set_texture(state.texture_id, 0, 0);
             let keyframe = state.keyframe;
             for i in 0..static_data::MESHES.len() {
-                let model = static_data::GLOBAL_TRANSFORMS[i] * static_data::ANIMATIONS[0].1[keyframe][i];
-                // static_data::GLOBAL_TRANSFORMS[i] * 
-                //let model = static_data::ANIMATIONS[0].1[keyframe][i];
-                push_model_matrix(
-                    &raw const model as *const u8,
-                );
+                //let model = static_data::GLOBAL_TRANSFORMS[i] * static_data::ANIMATIONS[0].1[keyframe][i];
+                // static_data::GLOBAL_TRANSFORMS[i] *
+                let model = static_data::ANIMATIONS[0].1[keyframe][i];
+                //let model = Mat4::IDENTITY;
+                push_model_matrix(&raw const model as *const u8);
                 draw_static_mesh_indexed(i as i32);
             }
         })

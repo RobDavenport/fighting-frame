@@ -1,6 +1,7 @@
+mod animation;
+
 use glam::{Mat4, Quat, Vec3};
-use gltf::Document;
-use gltf::{Node, Scene, Primitive, animation::util::ReadOutputs, buffer::Data};
+use gltf::{Primitive, animation::util::ReadOutputs, buffer::Data};
 use std::collections::HashMap;
 use std::fs;
 
@@ -16,7 +17,12 @@ impl MeshData {
     fn load(primitive: &Primitive<'_>, buffers: &[Data]) -> Self {
         let reader = primitive.reader(|b| Some(&buffers[b.index()]));
 
-        let indices: Vec<u16> = reader.read_indices().unwrap().into_u32().map(|n| u16::try_from(n).unwrap()).collect();
+        let indices: Vec<u16> = reader
+            .read_indices()
+            .unwrap()
+            .into_u32()
+            .map(|n| u16::try_from(n).unwrap())
+            .collect();
         let positions: Vec<[f32; 3]> = reader.read_positions().unwrap().collect();
         let normals: Vec<[f32; 3]> = reader.read_normals().unwrap().collect();
         let uvs: Vec<[f32; 2]> = reader.read_tex_coords(0).unwrap().into_f32().collect();
@@ -41,42 +47,38 @@ struct BoneChannelData {
 /// A keyframe is a vector of final transformation matrices (one per bone).
 type Keyframe = Vec<Mat4>;
 
-/// Compute world transforms by traversing the scene graph from the root.
-fn compute_world_transforms(document: &Document, node_to_world: &mut HashMap<usize, Mat4>) {
-    for node in document.nodes() {
-        traverse_node(node, Mat4::IDENTITY, node_to_world);
-    }
-}
-
-/// Recursively compute the world transform for a node and its children.
-fn traverse_node(node: Node, parent_transform: Mat4, node_to_world: &mut HashMap<usize, Mat4>) {
-    let (t, r, s) = node.transform().decomposed();
-    let local_transform = Mat4::from_scale_rotation_translation(
-        Vec3::from(s),
-        Quat::from_xyzw(r[0], r[1], r[2], r[3]),
-        Vec3::from(t),
-    );
-    let world_transform = parent_transform * local_transform;
-    node_to_world.insert(node.index(), world_transform);
-
-    for child in node.children() {
-        traverse_node(child, world_transform, node_to_world);
-    }
-}
-
 fn main() {
     // Import the glTF file.
     let (document, buffers, _images) =
         gltf::import("./exporter/assets/default char test.glb").unwrap();
 
-    // --- Compute global (world) transforms for all nodes ---
-    let mut node_to_world: HashMap<usize, Mat4> = HashMap::new();
-    compute_world_transforms(&document, &mut node_to_world);
-
     // --- Import Meshes ---
     let mut meshes = HashMap::new();
     let mut mesh_names = Vec::new();
     let mut mesh_to_index = HashMap::new();
+    let mut child_to_parent = HashMap::new();
+    let mut mesh_to_node_index = HashMap::new();
+
+    for node in document.nodes() {
+        let (t, r, s) = node.transform().decomposed();
+        let parent_index = node.index();
+        let transform = Mat4::from_scale_rotation_translation(
+            Vec3::from(s),
+            Quat::from_xyzw(r[0], r[1], r[2], r[3]),
+            Vec3::from(t),
+        );
+
+        if let Some(mesh) = node.mesh() {
+            if let Some(mesh_name) = mesh.name() {
+                mesh_to_node_index.insert(mesh_name.to_string(), node.index());
+            }
+        }
+
+        for child in node.children() {
+            let child_index = child.index();
+            child_to_parent.insert(child_index, (parent_index, transform));
+        }
+    }
 
     for (counter, mesh) in document.meshes().enumerate() {
         let name = mesh.name().unwrap().to_string();
@@ -90,23 +92,6 @@ fn main() {
         meshes.insert(name.clone(), data);
         mesh_names.push(name.clone());
         mesh_to_index.insert(name, counter);
-    }
-
-    // --- Compute Global Transforms for Each Relevant Mesh ---
-    // For each node in the scene that contains a mesh, if the mesh's name matches one of our meshes,
-    // record its world transform.
-    let mut global_transforms = vec![Mat4::IDENTITY; mesh_names.len()];
-    for node in document.nodes() {
-        if let Some(mesh) = node.mesh() {
-            if let Some(mesh_name) = mesh.name() {
-                if let Some(&index) = mesh_to_index.get(mesh_name) {
-                    if let Some(&world) = node_to_world.get(&node.index()) {
-                        println!("Node {} has transform {:?}", node.index(), node.transform());
-                        global_transforms[index] = world;
-                    }
-                }
-            }
-        }
     }
 
     // --- Process Animations ---
@@ -211,11 +196,11 @@ fn main() {
         // Convert channel data into final keyframe matrices.
         let animation_keyframes: Vec<Keyframe> = keyframe_data
             .into_iter()
-            .map(|bone_channels| {
+            .enumerate()
+            .map(|(mesh_index, bone_channels)| {
                 bone_channels
                     .into_iter()
-                    .enumerate()
-                    .map(|(index, channel)| {
+                    .map(|channel| {
                         let translation = Vec3::from(channel.translation.unwrap());
                         let rotation_arr = channel.rotation.unwrap();
                         let rotation = Quat::from_xyzw(
@@ -225,7 +210,20 @@ fn main() {
                             rotation_arr[3],
                         );
                         let scale = Vec3::from(channel.scale.unwrap());
-                        global_transforms[index] * Mat4::from_scale_rotation_translation(scale, rotation, translation)
+                        let local_transform =
+                            Mat4::from_scale_rotation_translation(scale, rotation, translation);
+
+                        let mut mesh_node_index =
+                            *mesh_to_node_index.get(&mesh_names[mesh_index]).unwrap();
+                        let mut global_transform = Mat4::IDENTITY;
+                        while let Some((parent_index, parent_transform)) =
+                            child_to_parent.get(&mesh_node_index)
+                        {
+                            global_transform = global_transform * *parent_transform;
+                            mesh_node_index = *parent_index;
+                        }
+
+                        global_transform * local_transform
                     })
                     .collect()
             })
@@ -237,7 +235,8 @@ fn main() {
     let mut output = String::new();
 
     // File header.
-    output.push_str("// This file is generated by the glTF importer tool. Do not edit manually.\n\n");
+    output
+        .push_str("// This file is generated by the glTF importer tool. Do not edit manually.\n\n");
     output.push_str("use glam::Mat4;\n\n");
 
     // MeshData struct.
@@ -271,20 +270,6 @@ fn main() {
     }
     output.push_str("];\n\n");
 
-    // Write global transforms.
-    output.push_str("pub static GLOBAL_TRANSFORMS: &[Mat4] = &[\n");
-    for t in &global_transforms {
-        let arr = t.to_cols_array();
-        output.push_str(&format!(
-            "    Mat4::from_cols_array(&[{:.6}, {:.6}, {:.6}, {:.6}, {:.6}, {:.6}, {:.6}, {:.6}, {:.6}, {:.6}, {:.6}, {:.6}, {:.6}, {:.6}, {:.6}, {:.6}]),\n",
-            arr[0], arr[1], arr[2], arr[3],
-            arr[4], arr[5], arr[6], arr[7],
-            arr[8], arr[9], arr[10], arr[11],
-            arr[12], arr[13], arr[14], arr[15],
-        ));
-    }
-    output.push_str("];\n\n");
-
     // Write animations.
     output.push_str("pub static ANIMATIONS: &[(&str, &[&[Mat4]])] = &[\n");
     for (anim_name, keyframes) in &animations {
@@ -312,6 +297,10 @@ fn main() {
 
     // Debug print: number of keyframes per animation.
     for (anim_name, keyframes) in animations.iter() {
-        println!("Imported Animation '{}' has {} keyframes.", anim_name, keyframes.len());
+        println!(
+            "Imported Animation '{}' has {} keyframes.",
+            anim_name,
+            keyframes.len()
+        );
     }
 }
