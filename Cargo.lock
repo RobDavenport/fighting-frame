@@ -63,6 +63,7 @@ dependencies = [
 name = "exporter"
 version = "0.1.0"
 dependencies = [
+ "glam",
  "gltf",
 ]
 
@@ -76,13 +77,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fighting-frame"
-version = "0.1.0"
-dependencies = [
- "glam",
-]
-
-[[package]]
 name = "flate2"
 version = "1.0.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -90,6 +84,13 @@ checksum = "c936bfdafb507ebbf50b8074c54fa31c5be9a1e7e5f467dd659697041407d07c"
 dependencies = [
  "crc32fast",
  "miniz_oxide",
+]
+
+[[package]]
+name = "game"
+version = "0.1.0"
+dependencies = [
+ "glam",
 ]
 
 [[package]]
