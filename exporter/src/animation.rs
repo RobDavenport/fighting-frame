@@ -13,7 +13,10 @@ struct NodeWithMesh {
     node_index: usize,
 }
 
-pub fn build_animation_list(document: &Document, buffers: &[Data]) -> HashMap<String, Vec<Vec<Mat4>>> {
+pub fn build_animation_list(
+    document: &Document,
+    buffers: &[Data],
+) -> HashMap<String, Vec<Vec<Mat4>>> {
     let mut nodes = HashMap::new();
     let mut nodes_with_meshes = Vec::new();
 
@@ -48,12 +51,10 @@ pub fn build_animation_list(document: &Document, buffers: &[Data]) -> HashMap<St
         let node_keyframes = load_animation(&animation, buffers, &nodes);
 
         let mut anim_keyframes = Vec::new();
-        for node in node_keyframes.iter(){
+        for node in node_keyframes.iter() {
             let mut mesh_keyframes = Vec::new();
             for (node_index, transform) in node.iter().enumerate() {
-                if nodes_with_meshes.contains(&NodeWithMesh {
-                    node_index,
-                }) {
+                if nodes_with_meshes.contains(&NodeWithMesh { node_index }) {
                     mesh_keyframes.push(transform.clone());
                 }
             }
@@ -143,7 +144,8 @@ fn load_animation(
         let static_transform = nodes.get(&node_index).unwrap().transform;
         // Decompose the static transform into TRS components.
         // Note: Using glam's to_scale_rotation_translation method.
-        let (static_scale, static_rot, static_trans) = static_transform.to_scale_rotation_translation();
+        let (static_scale, static_rot, static_trans) =
+            static_transform.to_scale_rotation_translation();
         // Set the defaults for frame 0 if not animated.
         let data = &mut keyframe_data[0][node_index];
         if data.translation.is_none() {
@@ -173,7 +175,6 @@ fn load_animation(
             }
         }
     }
-
 
     let mut transform_data = vec![vec![Mat4::IDENTITY; nodes.len()]; num_keyframes];
 
