@@ -15,7 +15,9 @@ mod static_data;
 mod texture;
 
 use glam::{Mat4, Quat, Vec3};
-use static_data::CHARACTER_DATA;
+use static_data::CHARACTER_GRAPHICS_DATA;
+
+const KEYFRAME_SPEED: usize = 4;
 
 struct GameState {
     player_1: &'static CharacterDefinition,
@@ -51,7 +53,7 @@ pub unsafe extern "C" fn init() {
             state.matcap_id = load_texture(matcap.as_ptr(), 256, 256, 1);
         });
 
-        for mesh in CHARACTER_DATA.meshes {
+        for mesh in CHARACTER_GRAPHICS_DATA.meshes {
             load_static_mesh_indexed(
                 mesh.vertices.as_ptr() as *const u8,
                 mesh.vertices.len() as i32,
@@ -68,7 +70,7 @@ pub unsafe extern "C" fn init() {
 pub unsafe extern "C" fn update() {
     STATE.with_borrow_mut(|state| {
         state.keyframe += 1;
-        state.keyframe %= 4 * 16;
+        state.keyframe %= 4 * KEYFRAME_SPEED;
     })
 }
 
@@ -91,10 +93,15 @@ pub unsafe extern "C" fn render() {
 
         STATE.with_borrow(|state| {
             set_texture(state.texture_id, 0, 0);
-            let keyframe = state.keyframe / 16;
+            let keyframe = state.keyframe / KEYFRAME_SPEED;
+            let key_mod = state.keyframe % KEYFRAME_SPEED;
+            let s = key_mod as f32 / KEYFRAME_SPEED as f32;
 
-            for i in 0..CHARACTER_DATA.meshes.len() {
-                let model = p1 * CHARACTER_DATA.animations[0].data[keyframe][i].matrix();
+            for i in 0..CHARACTER_GRAPHICS_DATA.meshes.len() {
+                let model = p1
+                    * CHARACTER_GRAPHICS_DATA.animations[1]
+                        .blend(keyframe, i, s)
+                        .matrix();
                 push_model_matrix(&raw const model as *const u8);
                 draw_static_mesh_indexed(i as i32);
             }
@@ -102,8 +109,11 @@ pub unsafe extern "C" fn render() {
             set_winding_order(1);
             set_matcap(state.matcap_id, 1, 3);
 
-            for i in 0..CHARACTER_DATA.meshes.len() {
-                let model = p2 * CHARACTER_DATA.animations[0].data[keyframe][i].matrix();
+            for i in 0..CHARACTER_GRAPHICS_DATA.meshes.len() {
+                let model = p2
+                    * CHARACTER_GRAPHICS_DATA.animations[1]
+                        .blend(keyframe, i, s)
+                        .matrix();
                 push_model_matrix(&raw const model as *const u8);
                 draw_static_mesh_indexed(i as i32);
             }

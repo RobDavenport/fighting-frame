@@ -1,6 +1,6 @@
 use crate::{
     gameplay::{CommandList, InputCommand, Move, MoveType},
-    graphics::{AnimationData, AnimationKey, Animations, CharacterMesh, MeshId},
+    graphics::{AnimationData, AnimationKey, Animations, CharacterMesh},
 };
 
 pub struct CharacterDefinition {

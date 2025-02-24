@@ -22,4 +22,12 @@ impl Trs {
     pub fn matrix(&self) -> Mat4 {
         Mat4::from_scale_rotation_translation(self.scale, self.rotation, self.translation)
     }
+
+    pub fn lerp(&self, other: &Self, s: f32) -> Self {
+        Self {
+            translation: self.translation.lerp(other.translation, s),
+            rotation: self.rotation.slerp(other.rotation, s),
+            scale: self.scale.lerp(other.scale, s),
+        }
+    }
 }

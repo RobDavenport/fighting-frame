@@ -20,7 +20,7 @@ pub fn generate_character_data_source(
     // Adjust the import path (`your_crate`) to your actual crate if needed.
     writeln!(
         file,
-        "use crate::db::{{CharacterData, MeshData, AnimationData}};"
+        "use crate::db::{{CharacterGraphicsData, MeshData, AnimationData}};"
     )?;
     writeln!(file, "use shared::Trs;")?;
 
@@ -93,10 +93,8 @@ pub fn generate_character_data_source(
     writeln!(file, "// Static character data")?;
     writeln!(
         file,
-        "pub static CHARACTER_DATA: CharacterData = CharacterData {{"
+        "pub static CHARACTER_GRAPHICS_DATA: CharacterGraphicsData = CharacterGraphicsData {{"
     )?;
-    // Here we assume that the `CharacterData` definition has been adjusted
-    // to accept static slices (e.g. `&'static [MeshData]` and `&'static [AnimationData]`).
     writeln!(file, "    meshes: &MESH_DATA,")?;
     writeln!(file, "    animations: &ANIMATION_DATA,")?;
     writeln!(file, "}};")?;

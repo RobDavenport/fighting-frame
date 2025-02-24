@@ -1,3 +1,4 @@
 TODO:
-- Consider using decomposed matrices so they can be lerped for smoother animation
-- Write data to disk instead of export file for static_data.rs
+- Hook up new CharacterGraphicsData into the output struct
+- Allow player control via inputs
+- Figure out how to "rotate" perspective projection for character rendering
