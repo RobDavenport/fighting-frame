@@ -4,6 +4,7 @@ resolver = "3"
 members = [
     "exporter",
     "game",
+    "shared",
 ]
 
 [profile.release]

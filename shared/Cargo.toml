@@ -1,12 +1,7 @@
 [package]
-name = "game"
+name = "shared"
 version = "0.1.0"
 edition = "2024"
 
-[lib]
-crate-type = ['cdylib']
-
 [dependencies]
-shared = { path = "../shared" }
-
 glam = { workspace = true }

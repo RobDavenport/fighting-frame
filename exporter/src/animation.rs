@@ -2,6 +2,9 @@ use std::collections::HashMap;
 
 use glam::{Mat4, Quat, Vec3};
 use gltf::{Animation, Document, animation::util::ReadOutputs, buffer::Data};
+use shared::Trs;
+
+use crate::OutAnimationData;
 
 struct Node {
     transform: Mat4,
@@ -13,10 +16,7 @@ struct NodeWithMesh {
     node_index: usize,
 }
 
-pub fn build_animation_list(
-    document: &Document,
-    buffers: &[Data],
-) -> HashMap<String, Vec<Vec<Mat4>>> {
+pub fn build_animation_list(document: &Document, buffers: &[Data]) -> Vec<OutAnimationData> {
     let mut nodes = HashMap::new();
     let mut nodes_with_meshes = Vec::new();
 
@@ -44,7 +44,7 @@ pub fn build_animation_list(
         }
     }
 
-    let mut out = HashMap::new();
+    let mut out = Vec::new();
 
     for animation in document.animations() {
         let anim_name = animation.name().unwrap();
@@ -63,7 +63,10 @@ pub fn build_animation_list(
             }
         }
 
-        out.insert(anim_name.to_string(), anim_keyframes);
+        out.push(OutAnimationData {
+            name: anim_name.to_string(),
+            data: anim_keyframes,
+        })
     }
 
     out
@@ -90,7 +93,7 @@ fn load_animation(
     animation: &Animation,
     buffers: &[Data],
     nodes: &HashMap<usize, Node>,
-) -> Vec<Vec<Mat4>> {
+) -> Vec<Vec<Trs>> {
     // Determine the maximum keyframe index.
     let mut max_frame = 0;
     for channel in animation.channels() {
@@ -208,4 +211,7 @@ fn load_animation(
     }
 
     transform_data
+        .into_iter()
+        .map(|keyframe| keyframe.into_iter().map(Trs::from).collect::<Vec<Trs>>())
+        .collect::<Vec<Vec<Trs>>>()
 }

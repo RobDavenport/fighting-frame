@@ -5,5 +5,7 @@ edition = "2024"
 
 
 [dependencies]
+shared = { path = "../shared" }
+
 gltf = { workspace = true }
 glam = { workspace = true }

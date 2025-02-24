@@ -65,6 +65,7 @@ version = "0.1.0"
 dependencies = [
  "glam",
  "gltf",
+ "shared",
 ]
 
 [[package]]
@@ -91,6 +92,7 @@ name = "game"
 version = "0.1.0"
 dependencies = [
  "glam",
+ "shared",
 ]
 
 [[package]]
@@ -262,6 +264,13 @@ dependencies = [
  "memchr",
  "ryu",
  "serde",
+]
+
+[[package]]
+name = "shared"
+version = "0.1.0"
+dependencies = [
+ "glam",
 ]
 
 [[package]]
