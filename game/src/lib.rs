@@ -16,7 +16,7 @@ mod texture;
 
 use glam::{Mat4, Quat, Vec3};
 
-const KEYFRAME_SPEED: usize = 4;
+const KEYFRAME_SPEED: usize = 8;
 
 struct GameState {
     player_1: &'static CharacterDefinition,
@@ -24,6 +24,7 @@ struct GameState {
     keyframe: usize,
     texture_id: i32,
     matcap_id: i32,
+    ticker: usize,
 }
 
 thread_local! {
@@ -33,6 +34,7 @@ thread_local! {
         keyframe: 0,
         texture_id: 0,
         matcap_id: 0,
+        ticker: 0,
     });
 }
 
@@ -73,6 +75,7 @@ pub unsafe extern "C" fn update() {
     STATE.with_borrow_mut(|state| {
         state.keyframe += 1;
         state.keyframe %= 4 * KEYFRAME_SPEED;
+        state.ticker += 1;
     })
 }
 
@@ -82,15 +85,20 @@ pub unsafe extern "C" fn render() {
     let pos = Vec3::new(5.0, 1.0, 0.0);
     let view = Mat4::look_to_rh(pos, Vec3::NEG_X, Vec3::Y);
 
-    let p1 = Mat4::from_translation(Vec3::new(0.0, 0.0, 2.0));
+    // TODO: Clean up how we draw this projection stuff
+    let p_value = STATE.with_borrow(|state| state.ticker) as f32 * 0.0005;
+    let rot = -15f32.to_radians();
+
+    let p1 = Mat4::from_rotation_y(rot);
     let p2 = Mat4::from_scale_rotation_translation(
         Vec3::new(1.0, 1.0, -1.0),
-        Quat::IDENTITY,
-        Vec3::new(0.0, 0.0, -2.0),
+        Quat::from_rotation_y(-rot),
+        Vec3::ZERO,
     );
 
     unsafe {
-        push_proj_matrix(&raw const proj as *const u8);
+        let p1_proj = Mat4::from_translation(Vec3::new(-p_value, 0.0, 0.0)) * proj;
+        push_proj_matrix(&raw const p1_proj as *const u8);
         push_view_matrix_pos(&raw const view as *const u8, &raw const pos as *const u8);
 
         STATE.with_borrow(|state| {
@@ -110,6 +118,9 @@ pub unsafe extern "C" fn render() {
 
             set_winding_order(1);
             set_matcap(state.matcap_id, 1, 3);
+
+            let p2_proj = Mat4::from_translation(Vec3::new(p_value, 0.0, 0.0)) * proj;
+            push_proj_matrix(&raw const p2_proj as *const u8);
 
             for i in 0..state.player_2.graphics.meshes.len() {
                 let model = p2
