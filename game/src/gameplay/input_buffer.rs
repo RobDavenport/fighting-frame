@@ -7,6 +7,20 @@ const INPUT_BUFFER_LENGTH: usize = 32;
 #[derive(Default)]
 pub struct FrameCommandState {
     pub frame_count: usize,
+    pub state: InputState,
+}
+
+impl FrameCommandState {
+    pub fn new(state: InputState) -> Self {
+        Self {
+            frame_count: 0,
+            state,
+        }
+    }
+}
+
+#[derive(Default, PartialEq, Eq, Clone, Copy)]
+pub struct InputState {
     pub direction: DirectionInput,
     pub a_pressed: bool,
     pub b_pressed: bool,
@@ -29,14 +43,9 @@ impl InputBuffer {
         self.buffer.back().unwrap()
     }
 
-    pub fn push(&mut self, command_state: FrameCommandState) {
+    pub fn push(&mut self, input_state: InputState) {
         let last = self.buffer.back_mut().unwrap();
-        if last.direction == command_state.direction
-            && last.a_pressed == command_state.a_pressed
-            && last.b_pressed == command_state.b_pressed
-            && last.c_pressed == command_state.c_pressed
-            && last.s_pressed == command_state.s_pressed
-        {
+        if last.state == input_state {
             last.frame_count += 1;
             return;
         }
@@ -45,6 +54,6 @@ impl InputBuffer {
             self.buffer.pop_front();
         }
 
-        self.buffer.push_back(command_state);
+        self.buffer.push_back(FrameCommandState::new(input_state));
     }
 }

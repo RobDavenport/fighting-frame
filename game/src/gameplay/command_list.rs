@@ -1,5 +1,3 @@
-use std::default;
-
 pub struct CommandList {
     pub moves: &'static [Move],
 }
@@ -10,7 +8,7 @@ impl CommandList {
     }
 }
 
-#[derive(PartialEq, Eq, Default)]
+#[derive(PartialEq, Eq, Default, Clone, Copy)]
 pub struct DirectionInput {
     pub vertical: VerticalInput,
     pub horizontal: HorizontalInput,
@@ -28,7 +26,7 @@ pub enum ButtonInput {
     CS, // Super
 }
 
-#[derive(PartialEq, Eq, Default)]
+#[derive(PartialEq, Eq, Default, Clone, Copy)]
 pub enum VerticalInput {
     #[default]
     Neutral,
@@ -36,7 +34,7 @@ pub enum VerticalInput {
     Down,
 }
 
-#[derive(PartialEq, Eq, Default)]
+#[derive(PartialEq, Eq, Default, Clone, Copy)]
 pub enum HorizontalInput {
     #[default]
     Neutral,
