@@ -189,24 +189,24 @@ fn load_animation(
     }
 
     // Now apply parent transforms
-    for key_index in 0..transform_data.len() {
+    for keyframe in &mut transform_data {
         // Iterate using a stable index 'i' for the current node.
-        for i in 0..transform_data[key_index].len() {
+        for i in 0..keyframe.len() {
             // Start with the local animated transform.
-            let mut out = transform_data[key_index][i];
+            let mut out = keyframe[i];
             // Use a separate variable for traversing up the hierarchy.
             let mut current = i;
             // Traverse up while there is a parent.
             while let Some(node) = nodes.get(&current) {
                 if let Some(parent_index) = node.parent_index {
-                    out = transform_data[key_index][parent_index] * out;
+                    out = keyframe[parent_index] * out;
                     current = parent_index;
                 } else {
                     break;
                 }
             }
             // Store the final global transform back at the original node index.
-            transform_data[key_index][i] = out;
+            keyframe[i] = out;
         }
     }
 

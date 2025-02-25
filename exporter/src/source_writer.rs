@@ -49,7 +49,7 @@ pub fn generate_character_data_source(
         writeln!(file, "    }},")?;
     }
     writeln!(file, "];")?;
-    writeln!(file, "")?;
+    writeln!(file)?;
 
     // --- Static Animation Data ---
     writeln!(file, "// Static animation data")?;
@@ -87,7 +87,7 @@ pub fn generate_character_data_source(
         writeln!(file, "    }},")?;
     }
     writeln!(file, "];")?;
-    writeln!(file, "")?;
+    writeln!(file)?;
 
     // --- Static Character Data ---
     writeln!(file, "// Static character data")?;
@@ -98,7 +98,7 @@ pub fn generate_character_data_source(
     writeln!(file, "    meshes: &MESH_DATA,")?;
     writeln!(file, "    animations: &ANIMATION_DATA,")?;
     writeln!(file, "}};")?;
-    writeln!(file, "")?;
+    writeln!(file)?;
 
     Ok(())
 }
