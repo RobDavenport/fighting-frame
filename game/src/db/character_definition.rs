@@ -1,29 +1,27 @@
 use crate::{
     gameplay::{CommandList, InputCommand, Move, MoveType},
-    graphics::{AnimationData, AnimationKey, Animations, CharacterMesh},
+    graphics::{AnimationData, AnimationKey, Animations},
+    static_data,
 };
+
+use super::graphics::CharacterGraphicsData;
 
 pub struct CharacterDefinition {
     pub name: &'static str,
     pub max_hp: usize,
 
     pub command_list: &'static CommandList,
-    pub mesh: &'static CharacterMesh,
+    pub graphics: &'static CharacterGraphicsData,
 }
 
-pub const DEFAULT_CHARACTER: &'static CharacterDefinition = &CharacterDefinition {
+pub static DEFAULT_CHARACTER: CharacterDefinition = CharacterDefinition {
     name: "Default Character",
     max_hp: 1000,
-    command_list: DEFAULT_CHARACTER_COMMAND_LIST,
-    mesh: DEFAULT_CHARACTER_MESH,
+    command_list: &DEFAULT_CHARACTER_COMMAND_LIST,
+    graphics: &static_data::CHARACTER_GRAPHICS_DATA,
 };
 
-const DEFAULT_CHARACTER_MESH: &'static CharacterMesh = &CharacterMesh {
-    meshes: &[],
-    animations: DEFAULT_CHARACTER_ANIMATIONS,
-};
-
-const DEFAULT_CHARACTER_ANIMATIONS: &'static Animations = &Animations {
+static DEFAULT_CHARACTER_ANIMATIONS: Animations = Animations {
     data: &[
         AnimationData {
             animation_key: AnimationKey::IdleStand,
@@ -36,7 +34,7 @@ const DEFAULT_CHARACTER_ANIMATIONS: &'static Animations = &Animations {
     ],
 };
 
-const DEFAULT_CHARACTER_COMMAND_LIST: &'static CommandList = &CommandList {
+static DEFAULT_CHARACTER_COMMAND_LIST: CommandList = CommandList {
     moves: &[
         Move {
             command: InputCommand::from_notation("5a"),
