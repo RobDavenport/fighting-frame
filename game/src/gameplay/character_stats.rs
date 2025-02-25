@@ -4,7 +4,6 @@ pub struct CharacterStats {
     pub health: usize,
     pub boost_meter: usize,
     pub super_meter: usize,
-    pub definition: &'static CharacterDefinition,
 }
 
 impl CharacterStats {
@@ -13,7 +12,6 @@ impl CharacterStats {
             health: definition.max_hp,
             boost_meter: 1000,
             super_meter: 0,
-            definition,
         }
     }
 }

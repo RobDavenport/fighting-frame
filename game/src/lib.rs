@@ -20,6 +20,7 @@ const KEYFRAME_SPEED: usize = 4;
 
 struct GameState {
     player_1: &'static CharacterDefinition,
+    player_2: &'static CharacterDefinition,
     keyframe: usize,
     texture_id: i32,
     matcap_id: i32,
@@ -28,6 +29,7 @@ struct GameState {
 thread_local! {
     static STATE: RefCell<GameState> = RefCell::new(GameState {
         player_1: &DEFAULT_CHARACTER,
+        player_2: &DEFAULT_CHARACTER,
         keyframe: 0,
         texture_id: 0,
         matcap_id: 0,
@@ -109,9 +111,9 @@ pub unsafe extern "C" fn render() {
             set_winding_order(1);
             set_matcap(state.matcap_id, 1, 3);
 
-            for i in 0..state.player_1.graphics.meshes.len() {
+            for i in 0..state.player_2.graphics.meshes.len() {
                 let model = p2
-                    * state.player_1.graphics.animations[1]
+                    * state.player_2.graphics.animations[1]
                         .blend(keyframe, i, s)
                         .matrix();
                 push_model_matrix(&raw const model as *const u8);
