@@ -97,7 +97,10 @@ pub unsafe extern "C" fn render() {
     );
 
     unsafe {
-        let p1_proj = Mat4::from_translation(Vec3::new(-p_value, 0.0, 0.0)) * proj;
+        // The X coordinate is in NDC Space, so -1.0 is the left side,
+        // and 1.0 is the right side.
+        // 0.0 is in the middle of the screen.
+        let p1_proj = Mat4::from_translation(Vec3::new(-0.5, 0.0, 0.0)) * proj;
         push_proj_matrix(&raw const p1_proj as *const u8);
         push_view_matrix_pos(&raw const view as *const u8, &raw const pos as *const u8);
 
@@ -119,7 +122,7 @@ pub unsafe extern "C" fn render() {
             set_winding_order(1);
             set_matcap(state.matcap_id, 1, 3);
 
-            let p2_proj = Mat4::from_translation(Vec3::new(p_value, 0.0, 0.0)) * proj;
+            let p2_proj = Mat4::from_translation(Vec3::new(0.5, 0.0, 0.0)) * proj;
             push_proj_matrix(&raw const p2_proj as *const u8);
 
             for i in 0..state.player_2.graphics.meshes.len() {
